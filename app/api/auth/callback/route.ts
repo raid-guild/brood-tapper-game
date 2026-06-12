@@ -16,7 +16,7 @@ import { LaunchTokenError, verifyLaunchToken } from "@/lib/launch-token";
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
   if (!token) {
-    return launchErrorRedirect(req, "missing_token");
+    return redirectToLaunchError("missing_token");
   }
 
   try {
@@ -41,18 +41,23 @@ export async function GET(req: NextRequest) {
     session.handle = claims.handle;
     await session.save();
 
-    return NextResponse.redirect(new URL("/", req.url));
+    return redirectTo("/");
   } catch (err) {
     const reason = launchErrorCode(err);
     console.error("Portal launch rejected", launchErrorLog(err));
-    return launchErrorRedirect(req, reason);
+    return redirectToLaunchError(reason);
   }
 }
 
-function launchErrorRedirect(req: NextRequest, reason: string) {
-  const url = new URL("/launch-error", req.url);
-  url.searchParams.set("reason", reason);
-  return NextResponse.redirect(url);
+function redirectToLaunchError(reason: string) {
+  return redirectTo(`/launch-error?reason=${encodeURIComponent(reason)}`);
+}
+
+function redirectTo(location: string) {
+  return new NextResponse(null, {
+    status: 303,
+    headers: { Location: location },
+  });
 }
 
 function launchErrorCode(err: unknown) {
