@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { desc, eq, sql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getOptionalSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 // POST: record a completed game. Requires an authenticated session;
 // no other anti-cheat in v1 (Q12) — the raw games table is the audit trail.
 export async function POST(req: NextRequest) {
-  const session = await getSession();
+  const session = await getOptionalSession();
   if (!session.playerId) {
     return NextResponse.json({ error: "not authenticated" }, { status: 401 });
   }
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
 // GET: all-time top 10 + the player's personal best (plan §6).
 export async function GET() {
-  const session = await getSession();
+  const session = await getOptionalSession();
 
   const top = await db()
     .select({

@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { getSession, portalModulesUrl } from "@/lib/session";
+import { getOptionalSession, portalModulesUrl } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function StartScreen() {
-  const session = await getSession();
+  const session = await getOptionalSession();
 
   return (
     <main>

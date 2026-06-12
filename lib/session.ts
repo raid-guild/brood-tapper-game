@@ -32,6 +32,14 @@ export async function getSession() {
   return getIronSession<SessionData>(await cookies(), sessionOptions());
 }
 
+export async function getOptionalSession(): Promise<SessionData> {
+  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+    return {};
+  }
+
+  return getSession();
+}
+
 export function portalModulesUrl() {
   return process.env.PORTAL_MODULES_URL ?? "https://portal.raidguild.org";
 }
