@@ -53,6 +53,7 @@ Copy `.env.example` to `.env` and fill in:
 | `MODULE_SLUG` | Expected `aud` claim |
 | `PORTAL_MODULES_URL` | Redirect target when no/invalid launch token |
 | `SESSION_SECRET` | iron-session cookie encryption (32+ chars) |
+| `BROOD_TAPPER_AGENT_API_TOKEN` | Bearer token for read-only agent reporting routes |
 
 ### Portal launch flow
 

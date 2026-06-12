@@ -121,6 +121,8 @@ tapper/
 │   ├── api/
 │   │   ├── auth/callback/route.ts  # receives ?token= from Portal launch
 │   │   ├── scores/route.ts         # POST submit, GET leaderboard
+│   │   ├── agent/scores/route.ts   # key-protected read API for agent reports
+│   │   ├── agent/days/route.ts     # key-protected daily game stats
 │   │   └── session/route.ts        # GET current user (for client)
 ├── game/                         # framework-free game engine code
 │   ├── loop.ts                   # fixed-timestep update + rAF render
@@ -168,7 +170,7 @@ Sam handles portal-side registration and provides the module secret.
    so back-button revisits land here — that's the designed path).
 
 Env vars (Railway): `MODULE_LAUNCH_SECRET`, `PORTAL_ISSUER`, `MODULE_SLUG`,
-`SESSION_SECRET`, `DATABASE_URL`.
+`SESSION_SECRET`, `DATABASE_URL`, `BROOD_TAPPER_AGENT_API_TOKEN`.
 
 ---
 
@@ -198,6 +200,76 @@ games (
   `games(score desc)`) + the player's personal best.
 - Submission requires an authenticated session; **no other anti-cheat in v1** (Q12).
   The raw `games` table lets us audit/remove anomalies by hand if needed.
+
+### Agent Read API
+
+The game UI keeps using `/api/scores`. Agent-facing reporting gets a separate
+read-only namespace under `/api/agent/*`, protected by
+`BROOD_TAPPER_AGENT_API_TOKEN`.
+
+Auth:
+
+- Require `Authorization: Bearer <BROOD_TAPPER_AGENT_API_TOKEN>` on every
+  `/api/agent/*` route.
+- Accept no browser session cookie fallback; the key is service-to-service auth.
+- Compare the configured key with a timing-safe helper and return `401` for missing
+  or invalid credentials.
+- Do not expose `profile_id`; report player `handle` only.
+
+Endpoints:
+
+| Route | Purpose |
+|---|---|
+| `GET /api/agent/scores?scope=all-time&limit=10` | Current all-time top scores. Default limit `10`, max `100`. |
+| `GET /api/agent/scores?scope=day&date=YYYY-MM-DD&limit=10&tz=America/Denver` | Highest scores for a calendar day. The day is interpreted in `tz`, defaulting to `UTC`. |
+| `GET /api/agent/days?date=YYYY-MM-DD&tz=America/Denver` | Games played on a day: count, unique players, total glasses, score stats, and top games. |
+
+Response shapes:
+
+```json
+{
+  "scope": "all-time",
+  "limit": 10,
+  "scores": [
+    {
+      "rank": 1,
+      "handle": "tavernkeeper",
+      "score": 42000,
+      "glasses": 210,
+      "durationMs": 312000,
+      "playedAt": "2026-06-12T18:42:00.000Z"
+    }
+  ]
+}
+```
+
+```json
+{
+  "date": "2026-06-12",
+  "tz": "America/Denver",
+  "startsAt": "2026-06-12T06:00:00.000Z",
+  "endsAt": "2026-06-13T06:00:00.000Z",
+  "gamesPlayed": 37,
+  "uniquePlayers": 14,
+  "totalGlasses": 2880,
+  "highestScore": 42000,
+  "averageScore": 12540,
+  "topScores": []
+}
+```
+
+Implementation notes:
+
+- `lib/agent-auth.ts` handles bearer-token parsing and timing-safe comparison.
+- `lib/reporting.ts` contains query helpers so the two route files share date-window
+  and ranking logic.
+- For day filtering, convert the requested local date + timezone to UTC bounds and
+  query `games.created_at >= startsAt and games.created_at < endsAt`.
+- Add an index on `games(created_at)` or `games(created_at, score desc)` if daily
+  reporting becomes slow; the current table is small enough to defer this until the
+  route lands or real traffic warrants it.
+- Keep `AGENTS.md` as the public contract for what data exists, how dates work, and
+  how the agent should call these routes.
 
 ---
 

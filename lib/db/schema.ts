@@ -30,5 +30,8 @@ export const games = pgTable(
     durationMs: integer("duration_ms").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
-  (t) => [index("games_score_idx").on(t.score.desc())]
+  (t) => [
+    index("games_score_idx").on(t.score.desc()),
+    index("games_created_at_idx").on(t.createdAt),
+  ]
 );
