@@ -15,7 +15,7 @@ export default async function StartScreen() {
           TAPPER
         </h1>
         <p className="subtitle">
-          POUR THE RAID BROOD.
+          POUR THE BLOOD OF MOLOCH.
           <br />
           KEEP THE GUILD WATERED.
         </p>

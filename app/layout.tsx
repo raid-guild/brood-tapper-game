@@ -11,7 +11,7 @@ const pixel = Press_Start_2P({
 export const metadata: Metadata = {
   title: "Brood Tapper",
   description:
-    "Pour the Raid Brood. A Raid Guild tavern game in the spirit of the 1983 arcade classic.",
+    "Pour the Blood of Moloch. A Raid Guild tavern game in the spirit of the 1983 arcade classic.",
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",

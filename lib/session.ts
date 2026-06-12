@@ -41,5 +41,5 @@ export async function getOptionalSession(): Promise<SessionData> {
 }
 
 export function portalModulesUrl() {
-  return process.env.PORTAL_MODULES_URL ?? "https://portal.raidguild.org";
+  return process.env.PORTAL_MODULES_URL ?? "https://portal.raidguild.org/modules";
 }

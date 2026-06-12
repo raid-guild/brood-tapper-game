@@ -12,28 +12,45 @@ export interface LaunchClaims {
 export async function verifyLaunchToken(token: string): Promise<LaunchClaims> {
   const secret = process.env.MODULE_LAUNCH_SECRET;
   if (!secret) throw new Error("MODULE_LAUNCH_SECRET is not set");
+  const issuer = process.env.PORTAL_ISSUER;
+  if (!issuer) throw new Error("PORTAL_ISSUER is not set");
+  const moduleSlug = process.env.MODULE_SLUG;
+  if (!moduleSlug) throw new Error("MODULE_SLUG is not set");
 
   const { payload } = await jwtVerify(
     token,
     new TextEncoder().encode(secret),
     {
       algorithms: ["HS256"],
-      issuer: process.env.PORTAL_ISSUER,
-      audience: process.env.MODULE_SLUG,
-      typ: "JWT",
+      issuer,
+      audience: moduleSlug,
     }
   );
 
-  const profileId =
-    (payload.profileID as string | undefined) ??
-    (payload.profileId as string | undefined) ??
-    (payload.sub as string | undefined);
-  const handle =
-    (payload.handle as string | undefined) ??
-    (payload.name as string | undefined);
-
-  if (!profileId || !handle) {
-    throw new Error("launch token missing profileID/handle claims");
+  if (payload.typ !== "portal_module_launch") {
+    throw new Error("launch token has invalid typ claim");
   }
-  return { profileId, handle };
+  if (payload.moduleSlug !== moduleSlug) {
+    throw new Error("launch token has invalid moduleSlug claim");
+  }
+
+  const profileId = stringClaim(payload.profileID) ?? stringClaim(payload.profileId);
+  const userId = stringClaim(payload.userID) ?? stringClaim(payload.userId);
+  const subject = stringClaim(payload.sub);
+  const identity = profileId ?? userId ?? subject;
+  const handle =
+    stringClaim(payload.handle) ??
+    stringClaim(payload.name) ??
+    (identity ? `member-${identity}` : undefined);
+
+  if (!identity || !handle) {
+    throw new Error("launch token missing identity/handle claims");
+  }
+  return { profileId: identity, handle };
+}
+
+function stringClaim(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return undefined;
 }

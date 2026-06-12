@@ -42,9 +42,21 @@ const PAL = {
 };
 
 const CUSTOMER_COLORS = [
-  "#c98e3c", "#5fae5a", "#b04a4a", "#7a5fae", "#ae8a5f",
-  "#4a8ab0", "#b0a44a", "#8a4ab0", "#4ab08a", "#b04a8a",
-  "#6e6eb0", "#b06e4a", "#4ab04a", "#b0b06e", "#6eb0b0",
+  "#c98e3c",
+  "#5fae5a",
+  "#b04a4a",
+  "#7a5fae",
+  "#ae8a5f",
+  "#4a8ab0",
+  "#b0a44a",
+  "#8a4ab0",
+  "#4ab08a",
+  "#b04a8a",
+  "#6e6eb0",
+  "#b06e4a",
+  "#4ab04a",
+  "#b0b06e",
+  "#6eb0b0",
 ];
 
 export interface RenderOpts {
@@ -56,7 +68,7 @@ export interface RenderOpts {
 export function render(
   ctx: CanvasRenderingContext2D,
   state: GameState,
-  opts: RenderOpts
+  opts: RenderOpts,
 ) {
   ctx.imageSmoothingEnabled = false;
   drawBackground(ctx);
@@ -83,7 +95,11 @@ export function render(
 
 /* ---------------------------------- scene --------------------------------- */
 
-function boundaryX(p1: { x: number; y: number }, p2: { x: number; y: number }, y: number) {
+function boundaryX(
+  p1: { x: number; y: number },
+  p2: { x: number; y: number },
+  y: number,
+) {
   return p1.x + ((p2.x - p1.x) * (y - p1.y)) / (p2.y - p1.y);
 }
 
@@ -147,8 +163,8 @@ function drawSign(ctx: CanvasRenderingContext2D, opts: RenderOpts) {
   ctx.textAlign = "center";
   ctx.fillStyle = PAL.neonRed;
   ctx.font = `16px ${opts.font}`;
-  ctx.fillText("RAID", x + w / 2, y + 30);
-  ctx.fillText("BROOD", x + w / 2, y + 50);
+  ctx.fillText("BROOD", x + w / 2, y + 30);
+  ctx.fillText("BEER", x + w / 2, y + 50);
   ctx.fillStyle = PAL.neonGold;
   ctx.font = `8px ${opts.font}`;
   ctx.fillText("ON TAP", x + w / 2, y + 65);
@@ -215,7 +231,7 @@ function drawTap(ctx: CanvasRenderingContext2D, lane: number) {
 function drawCustomer(
   ctx: CanvasRenderingContext2D,
   c: Customer,
-  opts: RenderOpts
+  opts: RenderOpts,
 ) {
   const { barY } = LANES[c.lane];
   const bob =
@@ -255,7 +271,7 @@ function drawCustomer(
 function drawBartender(
   ctx: CanvasRenderingContext2D,
   state: GameState,
-  opts: RenderOpts
+  opts: RenderOpts,
 ) {
   const b = state.bartender;
   const { barY, tapX } = LANES[b.lane];
@@ -271,7 +287,7 @@ function drawBartender(
       x,
       y,
       w,
-      CHARACTER_H
+      CHARACTER_H,
     );
   } else {
     ctx.fillStyle = PAL.white;
@@ -290,7 +306,7 @@ function drawMug(
   ctx: CanvasRenderingContext2D,
   s: number,
   barY: number,
-  full: boolean
+  full: boolean,
 ) {
   const x = Math.round(s - MUG_W / 2);
   const y = Math.round(barY - MUG_H);
@@ -314,7 +330,7 @@ function drawFillingMug(
   ctx: CanvasRenderingContext2D,
   tapX: number,
   barY: number,
-  fill: number
+  fill: number,
 ) {
   const x = Math.round(tapX - MUG_W / 2) + 4;
   const y = Math.round(barY - MUG_H);
@@ -346,7 +362,7 @@ function drawTip(ctx: CanvasRenderingContext2D, s: number, barY: number) {
 function drawHud(
   ctx: CanvasRenderingContext2D,
   state: GameState,
-  opts: RenderOpts
+  opts: RenderOpts,
 ) {
   ctx.font = `14px ${opts.font}`;
   ctx.fillStyle = PAL.text;
@@ -357,7 +373,7 @@ function drawHud(
   ctx.fillText(
     String(Math.max(opts.highScore, state.stats.score)).padStart(6, "0"),
     LOGICAL_W - 24,
-    28
+    28,
   );
 
   // Lives: little mugs under the score.
@@ -369,7 +385,7 @@ function drawHud(
 function drawPhaseOverlay(
   ctx: CanvasRenderingContext2D,
   state: GameState,
-  opts: RenderOpts
+  opts: RenderOpts,
 ) {
   const cx = LOGICAL_W / 2;
   const blink = Math.floor(Date.now() / 400) % 2 === 0;
@@ -396,14 +412,14 @@ function drawPhaseOverlay(
       ctx.fillStyle = PAL.text;
       ctx.font = `16px ${opts.font}`;
       ctx.fillText("GET READY TO SERVE", cx, 230);
-      statusStrip(ctx, opts, "POUR THE RAID BROOD");
+      statusStrip(ctx, opts, "POUR THE BLOOD OF MOLOCH!");
       break;
     }
     case "playing": {
       statusStrip(
         ctx,
         opts,
-        state.distraction > 0 ? "THE CROWD IS DISTRACTED!" : ""
+        state.distraction > 0 ? "THE CROWD IS DISTRACTED!" : "",
       );
       break;
     }
@@ -415,11 +431,7 @@ function drawPhaseOverlay(
       ctx.fillStyle = PAL.red;
       ctx.font = `12px ${opts.font}`;
       ctx.fillText(state.lifeLostReason, cx, 230);
-      statusStrip(
-        ctx,
-        opts,
-        state.lives > 0 ? `${state.lives} MUGS LEFT` : ""
-      );
+      statusStrip(ctx, opts, state.lives > 0 ? `${state.lives} MUGS LEFT` : "");
       break;
     }
     case "game-over": {
@@ -433,7 +445,7 @@ function drawPhaseOverlay(
       ctx.fillText(
         `SCORE ${state.stats.score}   GLASSES ${state.stats.glasses}`,
         cx,
-        196
+        196,
       );
       if (blink) ctx.fillText("PRESS ENTER TO RESTART", cx, LOGICAL_H - 56);
       break;
@@ -444,7 +456,7 @@ function drawPhaseOverlay(
 function statusStrip(
   ctx: CanvasRenderingContext2D,
   opts: RenderOpts,
-  text: string
+  text: string,
 ) {
   ctx.fillStyle = "#000";
   ctx.fillRect(0, STATUS_STRIP_Y, LOGICAL_W, LOGICAL_H - STATUS_STRIP_Y);

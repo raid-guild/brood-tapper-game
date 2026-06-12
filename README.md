@@ -57,11 +57,13 @@ Copy `.env.example` to `.env` and fill in:
 
 ### Portal launch flow
 
-Portal sends the player to `/api/auth/callback?token=<JWT>` (short TTL,
-HS256). On success the player row is upserted (`handle` refreshed each
-launch), an encrypted session cookie is set, and the player lands on the
-start screen. Invalid/missing/expired tokens redirect to the Portal
-modules page — that's the designed back-button path.
+Portal should send the player to `/portal/callback?token=<JWT>` (short TTL,
+HS256), matching the external-module integration guide. The app also accepts
+`/api/auth/callback?token=<JWT>` and `/auth/api/callback?token=<JWT>` as
+compatibility aliases. On success the player row is upserted (`handle`
+refreshed each launch), an encrypted session cookie is set, and the player
+lands on the start screen. Invalid/missing/expired tokens redirect to the
+Portal modules page — that's the designed back-button path.
 
 ### Database
 
