@@ -1,0 +1,13 @@
+import { NextResponse } from "next/server";
+import { getSession, portalModulesUrl } from "@/lib/session";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  const session = await getSession();
+  return NextResponse.json({
+    authenticated: Boolean(session.playerId),
+    handle: session.handle ?? null,
+    portalUrl: portalModulesUrl(),
+  });
+}
