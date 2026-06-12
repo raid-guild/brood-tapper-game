@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { getSession, portalModulesUrl } from "@/lib/session";
-import { verifyLaunchToken } from "@/lib/launch-token";
+import { LaunchTokenError, verifyLaunchToken } from "@/lib/launch-token";
 
 // Portal launch entry point (plan §5):
 //   GET /api/auth/callback?token=<JWT>
@@ -16,7 +16,7 @@ import { verifyLaunchToken } from "@/lib/launch-token";
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
   if (!token) {
-    return NextResponse.redirect(portalModulesUrl());
+    return launchErrorRedirect(req, "missing_token");
   }
 
   try {
@@ -43,7 +43,42 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.redirect(new URL("/", req.url));
   } catch (err) {
-    console.error("launch token rejected:", err);
-    return NextResponse.redirect(portalModulesUrl());
+    const reason = launchErrorCode(err);
+    console.error("Portal launch rejected", launchErrorLog(err));
+    return launchErrorRedirect(req, reason);
   }
+}
+
+function launchErrorRedirect(req: NextRequest, reason: string) {
+  const url = new URL("/launch-error", req.url);
+  url.searchParams.set("reason", reason);
+  return NextResponse.redirect(url);
+}
+
+function launchErrorCode(err: unknown) {
+  if (err instanceof LaunchTokenError) return err.code;
+  if (err instanceof Error && err.message === "SESSION_SECRET is not set") {
+    return "missing_session_secret";
+  }
+  if (err instanceof Error && err.message === "DATABASE_URL is not set") {
+    return "missing_database_url";
+  }
+  return "callback_failed";
+}
+
+function launchErrorLog(err: unknown) {
+  if (err instanceof LaunchTokenError) {
+    return {
+      code: err.code,
+      message: err.message,
+      details: err.details,
+    };
+  }
+  if (err instanceof Error) {
+    return {
+      code: launchErrorCode(err),
+      message: err.message,
+    };
+  }
+  return { code: "callback_failed" };
 }
