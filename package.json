@@ -2,9 +2,13 @@
   "name": "brood-tapper",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "mkdir -p .next/standalone/.next && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/",
     "start": "next start",
     "lint": "next lint",
     "sprites": "node assets-src/build-character-sprites.mjs",
@@ -12,6 +16,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "drizzle-kit": "^0.30.6",
     "drizzle-orm": "^0.38.0",
     "iron-session": "^8.0.4",
     "jose": "^5.9.6",
@@ -24,7 +29,6 @@
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "drizzle-kit": "^0.30.0",
     "playwright-core": "^1.60.0",
     "sharp": "^0.33.5",
     "typescript": "^5.7.0"

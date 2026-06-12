@@ -9,19 +9,27 @@ export interface SessionData {
   handle?: string;
 }
 
-const sessionOptions: SessionOptions = {
-  cookieName: "brood-tapper-session",
-  password: process.env.SESSION_SECRET ?? "dev-only-secret-change-me-32chars!!",
-  cookieOptions: {
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-    sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 7, // a week of tavern visits
-  },
-};
+function sessionOptions(): SessionOptions {
+  const password =
+    process.env.SESSION_SECRET ?? "dev-only-secret-change-me-32chars!!";
+  if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET is not set");
+  }
+
+  return {
+    cookieName: "brood-tapper-session",
+    password,
+    cookieOptions: {
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // a week of tavern visits
+    },
+  };
+}
 
 export async function getSession() {
-  return getIronSession<SessionData>(await cookies(), sessionOptions);
+  return getIronSession<SessionData>(await cookies(), sessionOptions());
 }
 
 export function portalModulesUrl() {
