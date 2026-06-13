@@ -12,7 +12,20 @@ import {
   STATUS_STRIP_Y,
 } from "./layout";
 import { LIFE_LOST_TIME } from "./constants";
-import { drawSprite, type SpriteSheet } from "./sprites";
+import {
+  drawDoorSprite,
+  drawMugSprite,
+  drawSignSprite,
+  drawSprite,
+  drawTapSprite,
+  drawTipSprite,
+  type DoorSpriteSheet,
+  type MugSpriteSheet,
+  type SignSpriteSheet,
+  type SpriteSheet,
+  type TapSpriteSheet,
+  type TipSpriteSheet,
+} from "./sprites";
 import type { GameState, Customer } from "./types";
 
 // Raid Guild-flavored arcade palette (composition per the reference captures,
@@ -41,6 +54,8 @@ const PAL = {
   tip: "#ffd24a",
 };
 
+const ACTOR_BAR_SINK = 9;
+
 const CUSTOMER_COLORS = [
   "#c98e3c",
   "#5fae5a",
@@ -62,6 +77,11 @@ const CUSTOMER_COLORS = [
 export interface RenderOpts {
   font: string; // pixel font family name
   sprites: SpriteSheet | null;
+  doorSprites: DoorSpriteSheet | null;
+  mugSprites: MugSpriteSheet | null;
+  signSprites: SignSpriteSheet | null;
+  tapSprites: TapSpriteSheet | null;
+  tipSprites: TipSpriteSheet | null;
   highScore: number;
 }
 
@@ -76,17 +96,21 @@ export function render(
 
   // Bars + fixtures back-to-front (top lane first).
   for (let i = 0; i < LANES.length; i++) {
-    drawDoor(ctx, i);
-    drawBarSurface(ctx, i);
-    drawTap(ctx, i);
+    drawDoor(ctx, i, opts);
+    drawBarTop(ctx, i);
+    drawTap(ctx, i, opts);
   }
 
   if (state.phase !== "attract" && state.phase !== "loading") {
-    for (const tip of state.tips) drawTip(ctx, tip.s, LANES[tip.lane].barY);
     for (const c of state.customers) drawCustomer(ctx, c, opts);
-    drawBartender(ctx, state, opts);
+    if (!state.bartender.pouring) drawBartender(ctx, state, opts);
+    for (let i = 0; i < LANES.length; i++) drawBarFront(ctx, i);
+    for (const tip of state.tips) drawTip(ctx, tip.s, LANES[tip.lane].barY, opts);
     for (const mug of state.mugs)
-      drawMug(ctx, mug.s, LANES[mug.lane].barY, mug.full);
+      drawMug(ctx, mug.s, LANES[mug.lane].barY, mug.full, opts);
+    if (state.bartender.pouring) drawBartender(ctx, state, opts);
+  } else {
+    for (let i = 0; i < LANES.length; i++) drawBarFront(ctx, i);
   }
 
   drawHud(ctx, state, opts);
@@ -107,50 +131,67 @@ function drawBackground(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = PAL.wall;
   ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
 
-  // Floor: a diagonal slab bounded by the door line (left) and tap line
-  // (right), extrapolated from the lane constants — matches the staggered
-  // composition of the reference captures.
-  const top = LANES[0].barY - 58;
+  // Room planes: a back wall for the banner, a central floor, and two darker
+  // side walls. The side walls follow the lane perspective without adding the
+  // old loose diagonal panel near the doors.
+  const top = LANES[0].barY - 40;
   const bottom = LOGICAL_H;
   const dl = { x: LANES[0].doorX, y: LANES[0].barY };
   const dr = { x: LANES[3].doorX, y: LANES[3].barY };
   const tl = { x: LANES[0].tapX, y: LANES[0].barY };
   const tr = { x: LANES[3].tapX, y: LANES[3].barY };
+  const leftTop = boundaryX(dl, dr, top) - 14;
+  const leftBottom = boundaryX(dl, dr, bottom) - 20;
+  const rightTop = boundaryX(tl, tr, top) + 24;
+  const rightBottom = boundaryX(tl, tr, bottom) + 26;
+
+  ctx.fillStyle = "#211620";
+  ctx.fillRect(0, 0, LOGICAL_W, top);
+
+  ctx.fillStyle = "#130a12";
+  ctx.beginPath();
+  ctx.moveTo(0, top);
+  ctx.lineTo(leftTop, top);
+  ctx.lineTo(leftBottom, bottom);
+  ctx.lineTo(0, bottom);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = PAL.wallEdge;
+  ctx.beginPath();
+  ctx.moveTo(rightTop, top);
+  ctx.lineTo(LOGICAL_W, top);
+  ctx.lineTo(LOGICAL_W, bottom);
+  ctx.lineTo(rightBottom, bottom);
+  ctx.closePath();
+  ctx.fill();
 
   ctx.fillStyle = PAL.floor;
   ctx.beginPath();
-  ctx.moveTo(boundaryX(dl, dr, top) - 34, top);
-  ctx.lineTo(boundaryX(tl, tr, top) + 26, top);
-  ctx.lineTo(boundaryX(tl, tr, bottom) + 26, bottom);
-  ctx.lineTo(boundaryX(dl, dr, bottom) - 34, bottom);
+  ctx.moveTo(leftTop, top);
+  ctx.lineTo(rightTop, top);
+  ctx.lineTo(rightBottom, bottom);
+  ctx.lineTo(leftBottom, bottom);
   ctx.closePath();
   ctx.fill();
 
-  // Right wall (keg wall) beyond the tap line.
-  ctx.fillStyle = PAL.wallEdge;
+  ctx.fillStyle = PAL.floorDark;
   ctx.beginPath();
-  ctx.moveTo(boundaryX(tl, tr, top) + 26, top);
-  ctx.lineTo(LOGICAL_W, top);
-  ctx.lineTo(LOGICAL_W, bottom);
-  ctx.lineTo(boundaryX(tl, tr, bottom) + 26, bottom);
+  ctx.moveTo(leftTop, top);
+  ctx.lineTo(rightTop, top);
+  ctx.lineTo(rightTop, top + 4);
+  ctx.lineTo(leftTop, top + 4);
   ctx.closePath();
   ctx.fill();
-
-  // Jukebox screen on the left wall (per reference).
-  ctx.save();
-  ctx.translate(18, 130);
-  ctx.transform(1, -0.22, 0, 1, 0, 0); // tilted panel
-  ctx.fillStyle = PAL.brassDark;
-  ctx.fillRect(0, 0, 62, 88);
-  ctx.fillStyle = "#1e2a26";
-  ctx.fillRect(5, 6, 52, 70);
-  ctx.fillStyle = "#2e443c";
-  for (let y = 10; y < 72; y += 6) ctx.fillRect(7, y, 48, 2);
-  ctx.restore();
 }
 
 function drawSign(ctx: CanvasRenderingContext2D, opts: RenderOpts) {
   const { x, y, w, h } = SIGN_RECT;
+  if (opts.signSprites) {
+    drawSignSprite(ctx, opts.signSprites, "brood-beer", x, y, w, h);
+    return;
+  }
+
   ctx.fillStyle = "#23101c";
   ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = PAL.neonGold;
@@ -170,24 +211,59 @@ function drawSign(ctx: CanvasRenderingContext2D, opts: RenderOpts) {
   ctx.fillText("ON TAP", x + w / 2, y + 65);
 }
 
-function drawBarSurface(ctx: CanvasRenderingContext2D, lane: number) {
+function barBounds(lane: number) {
   const { barY, doorX, tapX } = LANES[lane];
   const left = doorX - 26;
   const right = tapX + 14;
+  return { barY, left, right };
+}
+
+function drawBarTop(ctx: CanvasRenderingContext2D, lane: number) {
+  const { barY, left, right } = barBounds(lane);
   // top surface
+  ctx.fillStyle = "#4a0f0f";
+  ctx.fillRect(left, barY + 8, right - left, 3);
   ctx.fillStyle = PAL.barTop;
   ctx.fillRect(left, barY, right - left, 8);
   ctx.fillStyle = PAL.barEdge;
   ctx.fillRect(left, barY, right - left, 2);
-  // front face
-  ctx.fillStyle = PAL.barFront;
-  ctx.fillRect(left, barY + 8, right - left, BAR_THICKNESS - 8);
-  ctx.fillStyle = "#3f0f10";
-  ctx.fillRect(left, barY + BAR_THICKNESS - 3, right - left, 3);
 }
 
-function drawDoor(ctx: CanvasRenderingContext2D, lane: number) {
+function drawBarFront(ctx: CanvasRenderingContext2D, lane: number) {
+  const { barY, left, right } = barBounds(lane);
+  const frontY = barY + 6;
+  // front face
+  ctx.fillStyle = "#651818";
+  ctx.fillRect(left, frontY, right - left, BAR_THICKNESS - 6);
+  for (let x = left + 5; x < right - 3; x += 10) {
+    ctx.fillStyle = "#3e0e0f";
+    ctx.fillRect(x, frontY + 2, 4, BAR_THICKNESS - 11);
+    ctx.fillStyle = "#8b241b";
+    ctx.fillRect(x + 4, frontY + 2, 2, BAR_THICKNESS - 11);
+  }
+  ctx.fillStyle = "#821d19";
+  ctx.fillRect(left, frontY, right - left, 2);
+  ctx.fillStyle = "#3f0f10";
+  ctx.fillRect(left, barY + BAR_THICKNESS - 4, right - left, 2);
+  ctx.fillStyle = PAL.barEdge;
+  ctx.fillRect(left - 1, barY + BAR_THICKNESS - 2, right - left + 2, 2);
+}
+
+function drawDoor(ctx: CanvasRenderingContext2D, lane: number, opts: RenderOpts) {
   const { barY, doorX } = LANES[lane];
+  if (opts.doorSprites) {
+    drawDoorSprite(
+      ctx,
+      opts.doorSprites,
+      "open-arch",
+      doorX - 34,
+      barY - 56,
+      34,
+      56
+    );
+    return;
+  }
+
   const x = doorX - 30;
   const y = barY - 50;
   ctx.fillStyle = PAL.doorDark;
@@ -201,8 +277,21 @@ function drawDoor(ctx: CanvasRenderingContext2D, lane: number) {
   ctx.fillRect(x + 17, y + 24, 3, 3); // handle
 }
 
-function drawTap(ctx: CanvasRenderingContext2D, lane: number) {
+function drawTap(ctx: CanvasRenderingContext2D, lane: number, opts: RenderOpts) {
   const { barY, tapX } = LANES[lane];
+  if (opts.tapSprites) {
+    drawTapSprite(
+      ctx,
+      opts.tapSprites,
+      "wall-cask",
+      tapX + 12,
+      barY - 34,
+      40,
+      32
+    );
+    return;
+  }
+
   const x = tapX + 18;
   const y = barY - 18;
   // keg disc on the wall
@@ -239,7 +328,7 @@ function drawCustomer(
   // Sprite cells are square; collision stays CUSTOMER_W in lane space.
   const w = opts.sprites ? CHARACTER_H : CUSTOMER_W;
   const x = Math.round(c.s - w / 2);
-  const y = Math.round(barY - CHARACTER_H + bob);
+  const y = Math.round(barY - CHARACTER_H + ACTOR_BAR_SINK + bob);
 
   ctx.save();
   if (c.state === "knockback" || c.state === "exiting") {
@@ -258,7 +347,7 @@ function drawCustomer(
   ctx.restore();
 
   if (c.state === "drinking") {
-    drawMug(ctx, c.s + CUSTOMER_W / 2 + 2, barY, true);
+    drawMug(ctx, c.s + CUSTOMER_W / 2 + 2, barY, true, opts);
   }
   if (c.state === "raging") {
     ctx.fillStyle = PAL.red;
@@ -277,7 +366,8 @@ function drawBartender(
   const { barY, tapX } = LANES[b.lane];
   const w = opts.sprites ? CHARACTER_H : BARTENDER_W;
   const x = Math.round(b.s - w / 2);
-  const y = Math.round(barY - CHARACTER_H);
+  const sink = b.pouring ? 4 : ACTOR_BAR_SINK;
+  const y = Math.round(barY - CHARACTER_H + sink);
 
   if (opts.sprites) {
     drawSprite(
@@ -298,7 +388,7 @@ function drawBartender(
 
   // The mug does the animating while pouring (plan §7).
   if (b.pouring) {
-    drawFillingMug(ctx, tapX, barY, Math.min(1, b.pour));
+    drawFillingMug(ctx, tapX, barY, Math.min(1, b.pour), opts);
   }
 }
 
@@ -307,23 +397,33 @@ function drawMug(
   s: number,
   barY: number,
   full: boolean,
+  opts: RenderOpts,
 ) {
-  const x = Math.round(s - MUG_W / 2);
-  const y = Math.round(barY - MUG_H);
+  const drawW = opts.mugSprites ? 16 : MUG_W;
+  const drawH = opts.mugSprites ? 16 : MUG_H;
+  const x = Math.round(s - drawW / 2);
+  const y = Math.round(barY - drawH);
+  if (opts.mugSprites) {
+    drawMugSprite(ctx, opts.mugSprites, full ? "full" : "empty", x, y, drawW, drawH);
+    return;
+  }
+
+  const legacyX = Math.round(s - MUG_W / 2);
+  const legacyY = Math.round(barY - MUG_H);
   ctx.fillStyle = PAL.glass;
-  ctx.fillRect(x, y, MUG_W - 3, MUG_H);
+  ctx.fillRect(legacyX, legacyY, MUG_W - 3, MUG_H);
   if (full) {
     ctx.fillStyle = PAL.brood; // dark stout body
-    ctx.fillRect(x + 1, y + 4, MUG_W - 5, MUG_H - 5);
+    ctx.fillRect(legacyX + 1, legacyY + 4, MUG_W - 5, MUG_H - 5);
     ctx.fillStyle = PAL.foam; // foamy head
-    ctx.fillRect(x - 1, y, MUG_W - 1, 4);
+    ctx.fillRect(legacyX - 1, legacyY, MUG_W - 1, 4);
   } else {
     ctx.fillStyle = "#8a7d6d";
-    ctx.fillRect(x + 1, y + 1, MUG_W - 5, MUG_H - 2);
+    ctx.fillRect(legacyX + 1, legacyY + 1, MUG_W - 5, MUG_H - 2);
   }
   ctx.fillStyle = PAL.glass; // handle
-  ctx.fillRect(x + MUG_W - 3, y + 4, 3, 3);
-  ctx.fillRect(x + MUG_W - 3, y + 10, 3, 3);
+  ctx.fillRect(legacyX + MUG_W - 3, legacyY + 4, 3, 3);
+  ctx.fillRect(legacyX + MUG_W - 3, legacyY + 10, 3, 3);
 }
 
 function drawFillingMug(
@@ -331,30 +431,59 @@ function drawFillingMug(
   tapX: number,
   barY: number,
   fill: number,
+  opts: RenderOpts,
 ) {
-  const x = Math.round(tapX - MUG_W / 2) + 4;
-  const y = Math.round(barY - MUG_H);
+  const drawW = opts.mugSprites ? 16 : MUG_W;
+  const drawH = opts.mugSprites ? 16 : MUG_H;
+  const x = Math.round(tapX - drawW / 2) + 4;
+  const y = Math.round(barY - drawH);
+  if (opts.mugSprites) {
+    const name = fill >= 1 ? "full" : fill >= 0.55 ? "filling-2" : "filling-1";
+    drawMugSprite(ctx, opts.mugSprites, name, x, y, drawW, drawH);
+
+    // pour stream from the tap
+    ctx.fillStyle = fill < 1 ? PAL.brood : PAL.foam;
+    ctx.fillRect(x + 4, y - 8, 3, 8);
+    return;
+  }
+
+  const legacyX = Math.round(tapX - MUG_W / 2) + 4;
+  const legacyY = Math.round(barY - MUG_H);
   ctx.fillStyle = PAL.glass;
-  ctx.fillRect(x, y, MUG_W - 3, MUG_H);
+  ctx.fillRect(legacyX, legacyY, MUG_W - 3, MUG_H);
   const level = Math.round((MUG_H - 4) * fill);
   ctx.fillStyle = PAL.brood;
-  ctx.fillRect(x + 1, y + MUG_H - 1 - level, MUG_W - 5, level);
+  ctx.fillRect(legacyX + 1, legacyY + MUG_H - 1 - level, MUG_W - 5, level);
   if (fill >= 1) {
     ctx.fillStyle = PAL.foam;
-    ctx.fillRect(x - 1, y, MUG_W - 1, 4);
+    ctx.fillRect(legacyX - 1, legacyY, MUG_W - 1, 4);
   }
   // pour stream from the tap
   ctx.fillStyle = fill < 1 ? PAL.brood : PAL.foam;
-  ctx.fillRect(x + 3, y - 8, 3, 8);
+  ctx.fillRect(legacyX + 3, legacyY - 8, 3, 8);
 }
 
-function drawTip(ctx: CanvasRenderingContext2D, s: number, barY: number) {
-  const x = Math.round(s - 5);
-  const y = barY - 7;
+function drawTip(
+  ctx: CanvasRenderingContext2D,
+  s: number,
+  barY: number,
+  opts?: RenderOpts,
+) {
+  if (opts?.tipSprites) {
+    const w = 20;
+    const h = 16;
+    const x = Math.round(s - w / 2);
+    const y = Math.round(barY - h + 2);
+    drawTipSprite(ctx, opts.tipSprites, "coin-stack", x, y, w, h);
+    return;
+  }
+
+  const x = Math.round(s - 7);
+  const y = barY - 10;
   ctx.fillStyle = PAL.tip;
-  ctx.fillRect(x, y, 10, 7);
+  ctx.fillRect(x, y, 14, 10);
   ctx.fillStyle = PAL.brassDark;
-  ctx.fillRect(x + 3, y + 2, 4, 3);
+  ctx.fillRect(x + 4, y + 3, 6, 4);
 }
 
 /* ----------------------------------- HUD ---------------------------------- */
@@ -378,7 +507,7 @@ function drawHud(
 
   // Lives: little mugs under the score.
   for (let i = 0; i < state.lives; i++) {
-    drawMug(ctx, 64 + i * 20, 56, true);
+    drawMug(ctx, 64 + i * 20, 56, true, opts);
   }
 }
 

@@ -7,7 +7,6 @@ import { LaunchTokenError, verifyLaunchToken } from "@/lib/launch-token";
 //   GET /api/auth/callback?token=<JWT>
 // Also re-exported for Portal-compatible callback URLs:
 //   GET /portal/callback?token=<JWT>
-//   GET /auth/api/callback?token=<JWT>
 // Verify, upsert the player (handle is a snapshot — refresh it each
 // launch), set the session cookie, land on the start screen. Any
 // failure — including the designed back-button-after-TTL revisit —

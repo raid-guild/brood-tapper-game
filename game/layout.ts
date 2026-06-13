@@ -20,7 +20,7 @@ export interface Lane {
 // Four bars staggered diagonally: each lower bar starts further left
 // and reaches further right, per the reference layout.
 export const LANES: Lane[] = Array.from({ length: LANE_COUNT }, (_, i) => ({
-  barY: 122 + i * 72,
+  barY: 136 + i * 72,
   doorX: 124 - i * 28,
   tapX: 372 + i * 38,
 }));
@@ -31,7 +31,7 @@ export const BAR_THICKNESS = 22;
 export const CUSTOMER_W = 26;
 export const BARTENDER_W = 26;
 export const MUG_W = 14;
-export const TIP_W = 12;
+export const TIP_W = 18;
 
 // Sprite draw heights (sprites stand on the bar surface line).
 export const CHARACTER_H = 40;
@@ -39,5 +39,5 @@ export const MUG_H = 16;
 
 // HUD regions
 export const SCORE_Y = 18;
-export const SIGN_RECT = { x: 176, y: 8, w: 160, h: 76 };
+export const SIGN_RECT = { x: 170, y: 8, w: 172, h: 82 };
 export const STATUS_STRIP_Y = LOGICAL_H - 26;

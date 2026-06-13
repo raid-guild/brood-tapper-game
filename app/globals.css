@@ -74,6 +74,54 @@ a {
   animation: none;
 }
 
+.score-guide {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(116px, 1fr));
+  gap: 10px;
+  width: min(640px, 100%);
+}
+
+.score-guide__item {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 2px solid rgba(243, 207, 99, 0.68);
+  color: var(--rg-paper);
+  font-size: 8px;
+  line-height: 1.4;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.score-icon {
+  flex: 0 0 auto;
+  image-rendering: pixelated;
+}
+
+.score-icon--mug,
+.score-icon--empty {
+  width: 48px;
+  height: 48px;
+  background-image: url("/sprites/mugs.png");
+  background-size: 240px 48px;
+}
+
+.score-icon--mug {
+  background-position: -144px 0;
+}
+
+.score-icon--empty {
+  background-position: 0 0;
+}
+
+.score-icon--coin {
+  width: 60px;
+  height: 48px;
+  background-image: url("/sprites/tips.png");
+  background-size: 60px 48px;
+}
+
 @keyframes blink {
   50% {
     border-color: transparent;

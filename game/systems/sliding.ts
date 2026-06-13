@@ -1,5 +1,6 @@
 import { LANES, CUSTOMER_W, MUG_W, BARTENDER_W } from "../layout";
 import {
+  CUSTOMER_CLEAR_BUFFER,
   MUG_FULL_SPEED,
   MUG_EMPTY_SPEED,
   SCORE_SERVE,
@@ -31,10 +32,11 @@ export function updateMugs(
         state.stats.score += SCORE_SERVE;
         state.stats.glasses += 1;
         catcher.state = "knockback";
-        catcher.knockTarget = Math.max(
-          lane.doorX - 1, // landing at/past the door means they exit
-          catcher.s - diff.knockback
-        );
+        const knockTarget = catcher.s - diff.knockback;
+        catcher.knockTarget =
+          knockTarget <= lane.doorX + CUSTOMER_CLEAR_BUFFER
+            ? lane.doorX - 1
+            : knockTarget;
         state.events.push({ type: "serve", lane: mug.lane });
         continue;
       }

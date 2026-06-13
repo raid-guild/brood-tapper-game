@@ -15,6 +15,7 @@ export const MUG_EMPTY_SPEED = 130; // sliding tap-ward
 export const BARTENDER_SPEED = 150; // walking along the bar
 export const KNOCKBACK_SPEED = 240; // customer sliding back after a catch
 export const CUSTOMER_BASE_SPEED = 16; // before jitter + ramp
+export const CUSTOMER_CLEAR_BUFFER = 18; // near-door catches count as clearing
 
 // Timers, seconds
 export const POUR_TIME = 0.55; // hold Space this long for a full mug

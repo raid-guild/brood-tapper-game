@@ -160,7 +160,7 @@ tapper/
 Portal launch feature is live ([spec](https://github.com/raid-guild/portal/blob/staging/docs/external-module-launch-auth-feature-spec.md));
 Sam handles portal-side registration and provides the module secret.
 
-1. Portal sends user to `https://<app>/api/auth/callback?token=<JWT>` (60–120s TTL,
+1. Portal sends user to `https://<app>/portal/callback?token=<JWT>` (60–120s TTL,
    HS256 signed with the per-module secret).
 2. Verify with `jose`: signature (`MODULE_LAUNCH_SECRET`), `iss`, `aud` (module slug),
    `typ`, `exp`.

@@ -7,7 +7,20 @@ import { render } from "@/game/render";
 import { startLoop } from "@/game/loop";
 import { Input } from "@/game/input";
 import { Sfx } from "@/game/audio";
-import { loadCharacterSprites, type SpriteSheet } from "@/game/sprites";
+import {
+  loadCharacterSprites,
+  loadDoorSprites,
+  loadMugSprites,
+  loadSignSprites,
+  loadTapSprites,
+  loadTipSprites,
+  type DoorSpriteSheet,
+  type MugSpriteSheet,
+  type SignSpriteSheet,
+  type SpriteSheet,
+  type TapSpriteSheet,
+  type TipSpriteSheet,
+} from "@/game/sprites";
 
 const PIXEL_FONT = `"Press Start 2P", monospace`;
 
@@ -41,10 +54,20 @@ export default function GameCanvas() {
     const input = new Input();
     const sfx = new Sfx();
     let sprites: SpriteSheet | null = null;
+    let doorSprites: DoorSpriteSheet | null = null;
+    let mugSprites: MugSpriteSheet | null = null;
+    let signSprites: SignSpriteSheet | null = null;
+    let tapSprites: TapSpriteSheet | null = null;
+    let tipSprites: TipSpriteSheet | null = null;
     let highScore = 0;
     let isAuthed = false;
 
     loadCharacterSprites().then((s) => (sprites = s));
+    loadDoorSprites().then((s) => (doorSprites = s));
+    loadMugSprites().then((s) => (mugSprites = s));
+    loadSignSprites().then((s) => (signSprites = s));
+    loadTapSprites().then((s) => (tapSprites = s));
+    loadTipSprites().then((s) => (tipSprites = s));
     fetch("/api/session")
       .then((r) => r.json())
       .then((s) => {
@@ -120,7 +143,16 @@ export default function GameCanvas() {
         }
       },
       () => {
-        render(ctx, game, { font: PIXEL_FONT, sprites, highScore });
+        render(ctx, game, {
+          font: PIXEL_FONT,
+          sprites,
+          doorSprites,
+          mugSprites,
+          signSprites,
+          tapSprites,
+          tipSprites,
+          highScore,
+        });
       }
     );
 

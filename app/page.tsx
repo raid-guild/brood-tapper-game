@@ -1,4 +1,10 @@
 import Link from "next/link";
+import {
+  SCORE_CLEAR,
+  SCORE_EMPTY,
+  SCORE_SERVE,
+  SCORE_TIP,
+} from "@/game/constants";
 import { getOptionalSession, portalModulesUrl } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +28,24 @@ export default async function StartScreen() {
         <Link className="coin" href="/play">
           INSERT COIN
         </Link>
+        <div className="score-guide" aria-label="Scoring guide">
+          <div className="score-guide__item">
+            <span className="score-icon score-icon--mug" aria-hidden="true" />
+            <span>FULL MUG {SCORE_SERVE}</span>
+          </div>
+          <div className="score-guide__item">
+            <span className="score-icon score-icon--empty" aria-hidden="true" />
+            <span>EMPTY MUG {SCORE_EMPTY}</span>
+          </div>
+          <div className="score-guide__item">
+            <span className="score-icon score-icon--mug" aria-hidden="true" />
+            <span>CLEAR {SCORE_CLEAR}</span>
+          </div>
+          <div className="score-guide__item">
+            <span className="score-icon score-icon--coin" aria-hidden="true" />
+            <span>TIP {SCORE_TIP}</span>
+          </div>
+        </div>
         {session.handle ? (
           <p className="dim">TENDING BAR AS {session.handle.toUpperCase()}</p>
         ) : (
